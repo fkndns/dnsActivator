@@ -780,7 +780,7 @@ function Activator:Loop()
 					self:UseHeal(ally)
 				end
             -- exhaust ally
-                if self.Menu.summs.summexhaust.summexhaustmate:Value() and IsValid(ally) and ValidTarget(enemy, 575 + myHero.boundingRadius) and ally.health / ally.maxHealth <= self.Menu.summs.summexhaust.summexhaustmatehp:Value() / 100 and enemy.activeSpell.target == ally.handle and enemy.activeSpell.valid and enemy.activeSpell.spellWasCast and self.Menu.summs.summexhaust.enemiestohit[enemy.charName] and self.Menu.summexhaust.enemiestohit[enemy.charName]:Value() then
+                if self.Menu.summs.summexhaust.summexhaustmate:Value() and IsValid(ally) and ValidTarget(enemy, 575 + myHero.boundingRadius) and ally.health / ally.maxHealth <= self.Menu.summs.summexhaust.summexhaustmatehp:Value() / 100 and enemy.activeSpell.target == ally.handle and enemy.activeSpell.valid and enemy.activeSpell.spellWasCast and self.Menu.summs.summexhaust.enemiestohit[enemy.charName] and self.Menu.summs.summexhaust.enemiestohit[enemy.charName]:Value() then
                     self:UseExhaust(enemy)
                 end
 			-- ally redemption
