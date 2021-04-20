@@ -653,15 +653,15 @@ function Activator:Loop()
 				omencount = omencount + 1
 			end
 		-- heal self
-			if self.Menu.summs.summheal.summhealuse:Value() and myHero.health / myHero.maxHealth <= self.Menu.summs.summheal.summhealusehp:Value() / 100 and enemy.activeSpell.target == myHero.handle then
+			if self.Menu.summs.summheal.summhealuse:Value() and myHero.health / myHero.maxHealth <= self.Menu.summs.summheal.summhealusehp:Value() / 100 and enemy.activeSpell.target == myHero.handle and enemy.activeSpell.valid and enemy.activeSpell.spellWasCast then
 				self:UseHeal()
 			end
         -- exhaust self
-            if self.Menu.summs.summexhaust.summexhaustuse:Value() and ValidTarget(enemy, 600 + myHero.boundingRadius) and myHero.health / myHero.maxHealth <= self.Menu.summs.summexhaust.summexhaustusehp:Value() / 100 --[[and enemy.activeSpell.target == myHero.handle--]] and self.Menu.summs.summexhaust.enemiestohit[enemy.charName]:Value() then
+            if self.Menu.summs.summexhaust.summexhaustuse:Value() and ValidTarget(enemy, 575 + myHero.boundingRadius) and myHero.health / myHero.maxHealth <= self.Menu.summs.summexhaust.summexhaustusehp:Value() / 100 and enemy.activeSpell.valid and enemy.activeSpell.target == myHero.handle and enemy.activeSpell.spellWasCast and self.Menu.summs.summexhaust.enemiestohit[enemy.charName]:Value() then
                 self:UseExhaust(enemy)
             end
 		-- barrier
-			if self.Menu.summs.summbarrier.summbarrieruse:Value() and myHero.health / myHero.maxHealth <= self.Menu.summs.summbarrier.summbarrierusehp:Value() / 100 and enemy.activeSpell.target == myHero.handle then
+			if self.Menu.summs.summbarrier.summbarrieruse:Value() and myHero.health / myHero.maxHealth <= self.Menu.summs.summbarrier.summbarrierusehp:Value() / 100 and enemy.activeSpell.target == myHero.handle and enemy.activeSpell.valid and enemy.activeSpell.spellWasCast then
 				self:UseBarrier()
 			end
 		-- cleanse
@@ -670,7 +670,7 @@ function Activator:Loop()
 			end
 		-- ignite
 			local IgnDmg = 50 + 20 * myHero.levelData.lvl
-			if ValidTarget(enemy, 600 + myHero.boundingRadius + enemy.boundingRadius) and self.Menu.summs.summignite.summigniteuse:Value() and enemy.health <= IgnDmg and self.Menu.summs.summignite.enemiestohit[enemy.charName] and self.Menu.summs.summignite.enemiestohit[enemy.charName]:Value() then
+			if ValidTarget(enemy, 575 + myHero.boundingRadius + enemy.boundingRadius) and self.Menu.summs.summignite.summigniteuse:Value() and enemy.health <= IgnDmg and self.Menu.summs.summignite.enemiestohit[enemy.charName] and self.Menu.summs.summignite.enemiestohit[enemy.charName]:Value() then
 				self:UseIgnite(enemy)
 			end
 		-- redsmite
@@ -692,23 +692,23 @@ function Activator:Loop()
 				end
 			end
 		-- redemption self
-			if self.Menu.defitems.itemredemption.itemredemptionuse:Value() and myHero.health / myHero.maxHealth <= self.Menu.defitems.itemredemption.itemredemptionusehp:Value() / 100 and enemy.activeSpell.target == myHero.handle and not _G.SDK.Attack:IsActive() then
+			if self.Menu.defitems.itemredemption.itemredemptionuse:Value() and myHero.health / myHero.maxHealth <= self.Menu.defitems.itemredemption.itemredemptionusehp:Value() / 100 and enemy.activeSpell.target == myHero.handle and enemy.activeSpell.valid and enemy.activeSpell.spellWasCast and not _G.SDK.Attack:IsActive() then
 				self:UseRedemption(myHero)
 			end
 		-- mikaels self
-			if self.Menu.defitems.itemmikaels.itemmikaelsuse:Value() and (myHero.health / myHero.maxHealth <= self.Menu.defitems.itemmikaels.itemmikaelsusehp:Value() / 100 or IsCleanse(myHero) > 0.5) and enemy.activeSpell.target == myHero.handle and not _G.SDK.Attack:IsActive() then
+			if self.Menu.defitems.itemmikaels.itemmikaelsuse:Value() and (myHero.health / myHero.maxHealth <= self.Menu.defitems.itemmikaels.itemmikaelsusehp:Value() / 100 or IsCleanse(myHero) > 0.5) and enemy.activeSpell.target == myHero.handle and enemy.activeSpell.valid and enemy.activeSpell.spellWasCast and not _G.SDK.Attack:IsActive() then
 				self:UseMikaels(myHero)
 			end
 		-- stopwatch
-			if self.Menu.defitems.itemzhonyas.itemstopwatchuse:Value() and myHero.health / myHero.maxHealth <= self.Menu.defitems.itemzhonyas.itemstopwatchusehp:Value() / 100 and enemy.activeSpell.target == myHero.handle then
+			if self.Menu.defitems.itemzhonyas.itemstopwatchuse:Value() and myHero.health / myHero.maxHealth <= self.Menu.defitems.itemzhonyas.itemstopwatchusehp:Value() / 100 and enemy.activeSpell.target == myHero.handle and enemy.activeSpell.valid and enemy.activeSpell.spellWasCast then
 				self:UseStpWth()
 			end
 		-- zhonyas 
-			if self.Menu.defitems.itemzhonyas.itemzhonyasuse:Value() and myHero.health / myHero.maxHealth <= self.Menu.defitems.itemzhonyas.itemzhonyasusehp:Value() / 100 and enemy.activeSpell.target == myHero.handle then
+			if self.Menu.defitems.itemzhonyas.itemzhonyasuse:Value() and myHero.health / myHero.maxHealth <= self.Menu.defitems.itemzhonyas.itemzhonyasusehp:Value() / 100 and enemy.activeSpell.target == myHero.handle and enemy.activeSpell.valid and enemy.activeSpell.spellWasCast then
 				self:UseZhonyas()
 			end
 		-- locket self
-			if self.Menu.defitems.itemsolari.itemsolariuse:Value() and myHero.health / myHero.maxHealth <= self.Menu.defitems.itemsolari.itemsolariusehp:Value() / 100 and enemy.activeSpell.target == myHero.handle and not _G.SDK.Attack:IsActive() then
+			if self.Menu.defitems.itemsolari.itemsolariuse:Value() and myHero.health / myHero.maxHealth <= self.Menu.defitems.itemsolari.itemsolariusehp:Value() / 100 and enemy.activeSpell.target == myHero.handle and enemy.activeSpell.valid and enemy.activeSpell.spellWasCast and not _G.SDK.Attack:IsActive() then
 				self:UseLocket()
 			end
 		-- ironspike
@@ -765,15 +765,15 @@ function Activator:Loop()
 					allycount = allycount + 1
 				end
 			-- ally heal
-				if self.Menu.summs.summheal.summhealmate:Value() and myHero.health / myHero.maxHealth <= self.Menu.summs.summheal.summhealmatehp:Value() / 100 and self.Menu.summs.summheal.alliestoheal[ally.charName] and self.Menu.summs.summheal.alliestoheal[ally.charName]:Value() and enemy.activeSpell.target == ally.handle and ValidTarget(ally, 850 + myHero.boundingRadius + ally.boundingRadius) then
+				if self.Menu.summs.summheal.summhealmate:Value() and myHero.health / myHero.maxHealth <= self.Menu.summs.summheal.summhealmatehp:Value() / 100 and self.Menu.summs.summheal.alliestoheal[ally.charName] and self.Menu.summs.summheal.alliestoheal[ally.charName]:Value() and enemy.activeSpell.target == ally.handle and enemy.activeSpell.valid and enemy.activeSpell.spellWasCast and ValidTarget(ally, 850 + myHero.boundingRadius + ally.boundingRadius) then
 					self:UseHeal(ally)
 				end
             -- exhaust ally
-                if self.Menu.summs.summexhaust.summexhaustmate:Value() and IsValid(ally) and ValidTarget(enemy, 600 + myHero.boundingRadius) and ally.health / ally.maxHealth <= self.Menu.summs.summexhaust.summexhaustmatehp:Value() / 100 and enemy.activeSpell.target == ally.handle and self.Menu.summs.summexhaust.enemiestohit[enemy.charName] and self.Menu.summexhaust.enemiestohit[enemy.charName]:Value() then
+                if self.Menu.summs.summexhaust.summexhaustmate:Value() and IsValid(ally) and ValidTarget(enemy, 575 + myHero.boundingRadius) and ally.health / ally.maxHealth <= self.Menu.summs.summexhaust.summexhaustmatehp:Value() / 100 and enemy.activeSpell.target == ally.handle and enemy.activeSpell.valid and enemy.activeSpell.spellWasCast and self.Menu.summs.summexhaust.enemiestohit[enemy.charName] and self.Menu.summexhaust.enemiestohit[enemy.charName]:Value() then
                     self:UseExhaust(enemy)
                 end
 			-- ally redemption
-				if self.Menu.defitems.itemredemption.itemredemptionmate:Value() and ally.health / ally.maxHealth <= self.Menu.defitems.itemredemption.itemredemptionmatehp:Value() / 100 and enemy.activeSpell.target == ally.handle and ValidTarget(ally, 5500 + myHero.boundingRadius + ally.boundingRadius) and self.Menu.defitems.itemredemption.alliestoheal[ally.charName] and self.Menu.defitems.itemredemption.alliestoheal[ally.charName]:Value() and not _G.SDK.Attack:IsActive() then
+				if self.Menu.defitems.itemredemption.itemredemptionmate:Value() and ally.health / ally.maxHealth <= self.Menu.defitems.itemredemption.itemredemptionmatehp:Value() / 100 and enemy.activeSpell.target == ally.handle and enemy.activeSpell.valid and enemy.activeSpell.spellWasCast and ValidTarget(ally, 5500 + myHero.boundingRadius + ally.boundingRadius) and self.Menu.defitems.itemredemption.alliestoheal[ally.charName] and self.Menu.defitems.itemredemption.alliestoheal[ally.charName]:Value() and not _G.SDK.Attack:IsActive() then
 					if ally.pos:ToScreen().onScreen then
 						self:UseRedemption(ally)
 					else
@@ -785,7 +785,7 @@ function Activator:Loop()
 					self:UseMikaels(ally)
 				end
 			-- ally locket
-				if self.Menu.defitems.itemsolari.itemsolarimate:Value() and ally.health / ally.maxHealth <= self.Menu.defitems.itemsolari.itemsolarimatehp:Value() / 100 and enemy.activeSpell.target == ally.handle and self.Menu.defitems.itemsolari.alliestoheal[ally.charName] and self.Menu.defitems.itemsolari.alliestoheal[ally.charName]:Value() and ValidTarget(ally, 800 + myHero.boundingRadius + ally.boundingRadius) and not _G.SDK.Attack:IsActive() then
+				if self.Menu.defitems.itemsolari.itemsolarimate:Value() and ally.health / ally.maxHealth <= self.Menu.defitems.itemsolari.itemsolarimatehp:Value() / 100 and enemy.activeSpell.target == ally.handle and enemy.activeSpell.valid and enemy.activeSpell.spellWasCast and self.Menu.defitems.itemsolari.alliestoheal[ally.charName] and self.Menu.defitems.itemsolari.alliestoheal[ally.charName]:Value() and ValidTarget(ally, 800 + myHero.boundingRadius + ally.boundingRadius) and not _G.SDK.Attack:IsActive() then
 					self:UseLocket(ally)
 				end
 			-- ally shurelyas
@@ -803,7 +803,7 @@ function Activator:Loop()
 end
 
 function Activator:Draw()
-	--Draw.Circle(myHero.pos, 900 + myHero.boundingRadius, 2, Draw.Color(237, 255, 255, 255))
+	--Draw.Circle(myHero.pos, 575 + myHero.boundingRadius, 2, Draw.Color(237, 255, 255, 255))
 end
 
 function Activator:ItemSpells()
@@ -1090,4 +1090,5 @@ end
 function OnLoad()
     Activator()
 end
+
 
