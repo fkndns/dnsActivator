@@ -175,6 +175,17 @@ function GetAllyBase()
     end
 end
 
+function InBase(pos)
+    for i = 1, Game.ObjectCount() do
+        local object = Game.Object(i)
+
+        if object.isAlly and object.type == Obj_AI_SpawnPoint and GetDistance(object.pos, pos) <= 1000 then
+            --PrintChat("Base")
+            return object
+        end
+    end
+end
+
 function GetAllyHeroes()
     for i = 1, Game.HeroCount() do
         local Hero = Game.Hero(i)
@@ -1020,14 +1031,14 @@ end
 --pots
 function Activator:UseHPPot()
 	local ItemHPPot = GetItemSlot(myHero, 2003) 
-	if ItemHPPot > 0 and not BuffActive(myHero, "Item2003") then
+	if ItemHPPot > 0 and not BuffActive(myHero, "Item2003") and not InBase(myHero.pos) then
 		Control.CastSpell(ItemHotKey[ItemHPPot])
 	end
 end
 
 function Activator:UseCookie()
 	local ItemCookie = GetItemSlot(myHero, 2010)
-	if ItemCookie > 0 and not BuffActive(myHero, "Item2010") then
+	if ItemCookie > 0 and not BuffActive(myHero, "Item2010") and not InBase(myHero.pos) then
 		Control.CastSpell(ItemHotKey[ItemCookie])
 	end
 end
@@ -1035,7 +1046,7 @@ end
 function Activator:UseRefillPot()
 	local ItemRefillPot = GetItemSlot(myHero, 2031)
 	local RefillAmmo = myHero:GetItemData(ItemRefillPot).ammo 
-	if ItemRefillPot > 0 and not BuffActive(myHero, "ItemCrystalFlask") and RefillAmmo > 0 then
+	if ItemRefillPot > 0 and not BuffActive(myHero, "ItemCrystalFlask") and RefillAmmo > 0 and not InBase(myHero.pos) then
 		Control.CastSpell(ItemHotKey[ItemRefillPot])
 	end
 end
@@ -1043,7 +1054,7 @@ end
 function Activator:UseCorruptPot()
 	local ItemCorruptPot = GetItemSlot(myHero, 2033)
 	local CorruptAmmo = myHero:GetItemData(ItemCorruptPot).ammo
-	if ItemCorruptPot > 0 and not BuffActive(myHero, "ItemDarkCrystalFlask") and CorruptAmmo > 0 then
+	if ItemCorruptPot > 0 and not BuffActive(myHero, "ItemDarkCrystalFlask") and CorruptAmmo > 0 and not InBase(myHero.pos) then
 		Control.CastSpell(ItemHotKey[ItemCorruptPot])
 	end
 end
