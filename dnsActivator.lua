@@ -434,6 +434,7 @@ function Activator:LoadMenu()
 	self.Menu:MenuElement({id = "defitems", name = "Defensive Items", type = MENU})
 	self.Menu:MenuElement({id = "targitems", name = "Targeted Items", type = MENU})
 	self.Menu:MenuElement({id = "pots", name = "Potions", type = MENU})
+    self.Menu:MenuElement({id = "autolvl", name = "Auto Level Spells", type = MENU})
 -- summs
 	self.Menu.summs:MenuElement({id = "summheal", name = "Summoner Heal", type = MENU})
 	self.Menu.summs:MenuElement({id = "summbarrier", name = "Summoner Barrier", type = MENU})
@@ -569,6 +570,10 @@ function Activator:LoadMenu()
 	self.Menu.targitems.itemgale:MenuElement({id = "itemgaleuse", name = "Use Galeforce", value = true})
 	self.Menu.targitems.itemgale:MenuElement({id = "itemgaleusehp", name = "If enemy lower then", value = 30, min = 5, max = 95, step = 5, identifier = "%"})
 	self.Menu.targitems.itemgale:MenuElement({id = "enemiestohit", name = "Enemies to use on", type = MENU})
+-- auto level
+    self.Menu.autolvl:MenuElement({id = "autolvluse", name = "Enable Auto Level Spells", value = true})
+    self.Menu.autolvl:MenuElement({id = "autolvlorder", name = "Levelorder", value = 2, drop = {"[Q]->[W]->[E]", "[Q]->[E]->[W]", "[W]->[Q]->[E]", "[W]->[E]->[Q]", "[E]->[Q]->[W]", "[E]->[W]->[Q]"}})
+    self.Menu.autolvl:MenuElement({id = "autolvlstart", name = "Auto Level Spells starts at [lvl] 2", type = SPACE})
 end
 
 function Activator:AllyMenu()
@@ -603,6 +608,7 @@ function Activator:Tick()
 	if _G.JustEvade and _G.JustEvade:Evading() or (_G.ExtLibEvade and _G.ExtLibEvade.Evading) or Game.IsChatOpen() or myHero.dead then return end
 	self:Loop()
 	self:Pots()
+    self:Autolvl()
 	CastingQ = myHero.activeSpell.name == myHero:GetSpellData(_Q).name
 	CastingW = myHero.activeSpell.name == myHero:GetSpellData(_W).name
 	CastingE = myHero.activeSpell.name == myHero:GetSpellData(_E).name
@@ -668,7 +674,7 @@ function Activator:Loop()
 				self:UseHeal()
 			end
         -- exhaust self
-            if self.Menu.summs.summexhaust.summexhaustuse:Value() and ValidTarget(enemy, 575 + myHero.boundingRadius) and myHero.health / myHero.maxHealth <= self.Menu.summs.summexhaust.summexhaustusehp:Value() / 100 and enemy.activeSpell.valid and enemy.activeSpell.target == myHero.handle and enemy.activeSpell.spellWasCast and self.Menu.summs.summexhaust.enemiestohit[enemy.charName]:Value() then
+            if self.Menu.summs.summexhaust.summexhaustuse:Value() and ValidTarget(enemy, 535 + myHero.boundingRadius) and myHero.health / myHero.maxHealth <= self.Menu.summs.summexhaust.summexhaustusehp:Value() / 100 and enemy.activeSpell.valid and enemy.activeSpell.target == myHero.handle and enemy.activeSpell.spellWasCast and self.Menu.summs.summexhaust.enemiestohit[enemy.charName]:Value() then
                 self:UseExhaust(enemy)
             end
 		-- barrier
@@ -681,7 +687,7 @@ function Activator:Loop()
 			end
 		-- ignite
 			local IgnDmg = 50 + 20 * myHero.levelData.lvl
-			if ValidTarget(enemy, 575 + myHero.boundingRadius + enemy.boundingRadius) and self.Menu.summs.summignite.summigniteuse:Value() and enemy.health <= IgnDmg and self.Menu.summs.summignite.enemiestohit[enemy.charName] and self.Menu.summs.summignite.enemiestohit[enemy.charName]:Value() then
+			if ValidTarget(enemy, 535 + myHero.boundingRadius) and self.Menu.summs.summignite.summigniteuse:Value() and enemy.health <= IgnDmg and self.Menu.summs.summignite.enemiestohit[enemy.charName] and self.Menu.summs.summignite.enemiestohit[enemy.charName]:Value() then
 				self:UseIgnite(enemy)
 			end
 		-- redsmite
@@ -780,7 +786,7 @@ function Activator:Loop()
 					self:UseHeal(ally)
 				end
             -- exhaust ally
-                if self.Menu.summs.summexhaust.summexhaustmate:Value() and IsValid(ally) and ValidTarget(enemy, 575 + myHero.boundingRadius) and ally.health / ally.maxHealth <= self.Menu.summs.summexhaust.summexhaustmatehp:Value() / 100 and enemy.activeSpell.target == ally.handle and enemy.activeSpell.valid and enemy.activeSpell.spellWasCast and self.Menu.summs.summexhaust.enemiestohit[enemy.charName] and self.Menu.summs.summexhaust.enemiestohit[enemy.charName]:Value() then
+                if self.Menu.summs.summexhaust.summexhaustmate:Value() and IsValid(ally) and ValidTarget(enemy, 535 + myHero.boundingRadius) and ally.health / ally.maxHealth <= self.Menu.summs.summexhaust.summexhaustmatehp:Value() / 100 and enemy.activeSpell.target == ally.handle and enemy.activeSpell.valid and enemy.activeSpell.spellWasCast and self.Menu.summs.summexhaust.enemiestohit[enemy.charName]:Value() then
                     self:UseExhaust(enemy)
                 end
 			-- ally redemption
@@ -812,6 +818,208 @@ function Activator:Loop()
 		EnemiesGoreDrinker = drinkercount
 		EnemiesOmen = omencount
 end
+
+function Activator:Autolvl()
+    local spellPoints = myHero.levelData.lvlPts 
+    local Level = myHero.levelData.lvl
+
+    if spellPoints > 0 and self.Menu.autolvl.autolvluse:Value() and Game.IsOnTop() then
+        if Level == 6 or Level == 11 or Level == 16 then
+            Control.KeyDown(HK_LUS)
+            Control.KeyDown(HK_R)
+            Control.KeyUp(HK_R)
+            Control.KeyUp(HK_LUS)
+        elseif Level == 8 or Level == 10 or Level == 12 or Level == 13 then
+            if self.Menu.autolvl.autolvlorder:Value() == 1 or self.Menu.autolvl.autolvlorder:Value() == 6 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_W)
+                Control.KeyUp(HK_W)
+                Control.KeyUp(HK_LUS)
+            elseif self.Menu.autolvl.autolvlorder:Value() == 3 or self.Menu.autolvl.autolvlorder:Value() == 5 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_Q)
+                Control.KeyUp(HK_Q)
+                Control.KeyUp(HK_LUS)
+            elseif self.Menu.autolvl.autolvlorder:Value() == 2 or self.Menu.autolvl.autolvlorder:Value() == 4 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_E)
+                Control.KeyUp(HK_E)
+                Control.KeyUp(HK_LUS)
+            end
+        elseif Level == 4 or Level == 5 or Level == 7 or Level == 9 then
+            if self.Menu.autolvl.autolvlorder:Value() == 1 or self.Menu.autolvl.autolvlorder:Value() == 2 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_Q)
+                Control.KeyUp(HK_Q)
+                Control.KeyUp(HK_LUS)
+            elseif self.Menu.autolvl.autolvlorder:Value() == 3 or self.Menu.autolvl.autolvlorder:Value() == 4 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_W)
+                Control.KeyUp(HK_W)
+                Control.KeyUp(HK_LUS)
+            elseif self.Menu.autolvl.autolvlorder:Value() == 5 or self.Menu.autolvl.autolvlorder:Value() == 6 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_E)
+                Control.KeyUp(HK_E)
+                Control.KeyUp(HK_LUS)
+            end
+        elseif Level == 14 or Level == 15 or Level == 17 or Level == 18 then
+            if self.Menu.autolvl.autolvlorder:Value() == 4 or self.Menu.autolvl.autolvlorder:Value() == 6 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_Q)
+                Control.KeyUp(HK_Q)
+                Control.KeyUp(HK_LUS)
+            elseif self.Menu.autolvl.autolvlorder:Value() == 2 or self.Menu.autolvl.autolvlorder:Value() == 5 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_W)
+                Control.KeyUp(HK_W)
+                Control.KeyUp(HK_LUS)
+            elseif self.Menu.autolvl.autolvlorder:Value() == 1 or self.Menu.autolvl.autolvlorder:Value() == 3 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_E)
+                Control.KeyUp(HK_E)
+                Control.KeyUp(HK_LUS)
+            end
+            -- lvl 2 Protection
+        elseif Level == 2 then
+            if self.Menu.autolvl.autolvlorder:Value() == 3 and myHero:GetSpellData(_Q).level == 0 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_Q)
+                Control.KeyUp(HK_Q)
+                Control.KeyUp(HK_LUS)
+            elseif self.Menu.autolvl.autolvlorder:Value() == 3 and myHero:GetSpellData(_Q).level == 1 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_W)
+                Control.KeyUp(HK_W)
+                Control.KeyUp(HK_LUS)
+            end
+            if self.Menu.autolvl.autolvlorder:Value() == 1 and myHero:GetSpellData(_W).level == 0 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_W)
+                Control.KeyUp(HK_W)
+                Control.KeyUp(HK_LUS)
+            elseif self.Menu.autolvl.autolvlorder:Value() == 1 and myHero:GetSpellData(_W).level == 1 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_Q)
+                Control.KeyUp(HK_Q)
+                Control.KeyUp(HK_LUS)
+            end
+            if self.Menu.autolvl.autolvlorder:Value() == 2 and myHero:GetSpellData(_E).level == 0 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_E)
+                Control.KeyUp(HK_E)
+                Control.KeyUp(HK_LUS)
+            elseif self.Menu.autolvl.autolvlorder:Value() == 2 and myHero:GetSpellData(_E).level == 1 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_Q)
+                Control.KeyUp(HK_Q)
+                Control.KeyUp(HK_LUS)
+            end
+            if self.Menu.autolvl.autolvlorder:Value() == 4 and myHero:GetSpellData(_E).level == 0 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_E)
+                Control.KeyUp(HK_E)
+                Control.KeyUp(HK_LUS)
+            elseif self.Menu.autolvl.autolvlorder:Value() == 4 and myHero:GetSpellData(_E).level == 1 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_W)
+                Control.KeyUp(HK_W)
+                Control.KeyUp(HK_LUS)
+            end
+            if self.Menu.autolvl.autolvlorder:Value() == 5 and myHero:GetSpellData(_Q).level == 0 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_Q)
+                Control.KeyUp(HK_Q)
+                Control.KeyUp(HK_LUS)
+            elseif self.Menu.autolvl.autolvlorder:Value() == 5 and myHero:GetSpellData(_Q).level == 1 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_E)
+                Control.KeyUp(HK_E)
+                Control.KeyUp(HK_LUS)
+            end
+            if self.Menu.autolvl.autolvlorder:Value() == 6 and myHero:GetSpellData(_W).level == 0 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_W)
+                Control.KeyUp(HK_W)
+                Control.KeyUp(HK_LUS)
+            elseif self.Menu.autolvl.autolvlorder:Value() == 6 and myHero:GetSpellData(_W).level == 1 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_E)
+                Control.KeyUp(HK_E)
+                Control.KeyUp(HK_LUS)
+            end
+            -- lvl 3 Protection
+        elseif Level == 3 then
+            if self.Menu.autolvl.autolvlorder:Value() == 1 and myHero:GetSpellData(_E).level == 0 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_E)
+                Control.KeyUp(HK_E)
+                Control.KeyUp(HK_LUS)
+            elseif self.Menu.autolvl.autolvlorder:Value() == 1 and myHero:GetSpellData(_E).level == 1 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_Q)
+                Control.KeyUp(HK_Q)
+                Control.KeyUp(HK_LUS)
+            end
+            if self.Menu.autolvl.autolvlorder:Value() == 2 and myHero:GetSpellData(_W).level == 0 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_W)
+                Control.KeyUp(HK_W)
+                Control.KeyUp(HK_LUS)
+            elseif self.Menu.autolvl.autolvlorder:Value() == 2 and myHero:GetSpellData(_W).level == 1 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_Q)
+                Control.KeyUp(HK_Q)
+                Control.KeyUp(HK_LUS)
+            end
+            if self.Menu.autolvl.autolvlorder:Value() == 3 and myHero:GetSpellData(_E).level == 0 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_E)
+                Control.KeyUp(HK_E)
+                Control.KeyUp(HK_LUS)
+            elseif self.Menu.autolvl.autolvlorder:Value() == 3 and myHero:GetSpellData(_E).level == 1 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_W)
+                Control.KeyUp(HK_W)
+                Control.KeyUp(HK_LUS)
+            end
+            if self.Menu.autolvl.autolvlorder:Value() == 4 and myHero:GetSpellData(_Q).level == 0 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_Q)
+                Control.KeyUp(HK_Q)
+                Control.KeyUp(HK_LUS)
+            elseif self.Menu.autolvl.autolvlorder:Value() == 4 and myHero:GetSpellData(_Q).level == 1 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_W)
+                Control.KeyUp(HK_W)
+                Control.KeyUp(HK_LUS)
+            end
+            if self.Menu.autolvl.autolvlorder:Value() == 5 and myHero:GetSpellData(_W).level == 0 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_W)
+                Control.KeyUp(HK_W)
+                Control.KeyUp(HK_LUS)
+            elseif self.Menu.autolvl.autolvlorder:Value() == 5 and myHero:GetSpellData(_W).level == 1 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_E)
+                Control.KeyUp(HK_E)
+                Control.KeyUp(HK_LUS)
+            end
+            if self.Menu.autolvl.autolvlorder:Value() == 6 and myHero:GetSpellData(_Q).level == 0 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_Q)
+                Control.KeyUp(HK_Q)
+                Control.KeyUp(HK_LUS)
+            elseif self.Menu.autolvl.autolvlorder:Value() == 6 and myHero:GetSpellData(_Q).level == 1 then
+                Control.KeyDown(HK_LUS)
+                Control.KeyDown(HK_E)
+                Control.KeyUp(HK_E)
+                Control.KeyUp(HK_LUS)
+            end
+        end
+    end
+end
+
 
 function Activator:Draw()
 	--Draw.Circle(myHero.pos, 575 + myHero.boundingRadius, 2, Draw.Color(237, 255, 255, 255))
