@@ -412,6 +412,14 @@ local function ValidTarget(unit, range)
     return false;
 end
 
+local function MMCast(pos, spell)
+        local MMSpot = Vector(pos):ToMM()
+        local MouseSpotBefore = mousePos
+        Control.SetCursorPos(MMSpot.x, MMSpot.y)
+        Control.KeyDown(spell); Control.KeyUp(spell)
+        DelayAction(function() Control.SetCursorPos(MouseSpotBefore) end, 0.20)
+end
+
 class "Activator"
 local EnemyLoaded = false
 local AllyLoaded = false
@@ -419,6 +427,8 @@ local EnemiesIronSpike = spikecount
 local EnemiesGoreDrinker = drinkercount
 local EnemiesOmen = omencount
 local AlliesAround = allycount
+local Timer = Game.Timer()
+local ComboTimer = 0
 
 function Activator:__init()
 	self:LoadMenu()
@@ -573,7 +583,7 @@ function Activator:LoadMenu()
 -- auto level
     self.Menu.autolvl:MenuElement({id = "autolvluse", name = "Enable Auto Level Spells", value = true})
     self.Menu.autolvl:MenuElement({id = "autolvlorder", name = "Levelorder", value = 2, drop = {"[Q]->[W]->[E]", "[Q]->[E]->[W]", "[W]->[Q]->[E]", "[W]->[E]->[Q]", "[E]->[Q]->[W]", "[E]->[W]->[Q]"}})
-    self.Menu.autolvl:MenuElement({id = "autolvlstart", name = "Auto Level Spells starts at [lvl] 2", type = SPACE})
+    self.Menu.autolvl:MenuElement({id = "autolvllvl", name = "Start AutoLevel at [lvl]", value = 2, min = 2, max = 18})
 end
 
 function Activator:AllyMenu()
@@ -613,6 +623,12 @@ function Activator:Tick()
 	CastingW = myHero.activeSpell.name == myHero:GetSpellData(_W).name
 	CastingE = myHero.activeSpell.name == myHero:GetSpellData(_E).name
 	CastingR = myHero.activeSpell.name == myHero:GetSpellData(_R).name
+    if Mode() == "Combo" then
+        ComboTimer = Game.Timer() - Timer
+    else
+        ComboTimer = 0
+        Timer = Game.Timer()
+    end
 	if EnemyLoaded == false then
         local CountEnemy = 0
         for i, enemy in pairs(EnemyHeroes) do
@@ -648,6 +664,14 @@ function Activator:CastingChecks()
 		return false
 	end
 end
+
+function Activator:SmoothChecks()
+    if self:CastingChecks() and myHero.attackData.state ~= 2 and _G.SDK.Cursor.Step == 0 and (ComboTimer == 0 or ComboTimer > 0.1) then
+        return true
+    else
+        return false
+    end
+end
 	
 function Activator:Loop()
 	local spikecount = 0 
@@ -670,16 +694,46 @@ function Activator:Loop()
 				omencount = omencount + 1
 			end
 		-- heal self
-			if self.Menu.summs.summheal.summhealuse:Value() and myHero.health / myHero.maxHealth <= self.Menu.summs.summheal.summhealusehp:Value() / 100 and enemy.activeSpell.target == myHero.handle and enemy.activeSpell.valid and enemy.activeSpell.spellWasCast then
-				self:UseHeal()
+			if self.Menu.summs.summheal.summhealuse:Value() and myHero.health / myHero.maxHealth <= self.Menu.summs.summheal.summhealusehp:Value() / 100 and enemy.activeSpell.valid and not enemy.activeSpell.isStopped then
+                if enemy.activeSpell.target == myHero.handle then
+				    self:UseHeal()
+                else
+                    local placementPos = enemy.activeSpell.placementPos
+                    local width = myHero.boundingRadius + 50
+                    if enemy.activeSpell.width > 0 then width = width + enemy.activeSpell.width end
+                    local spellLine = ClosestPointOnLineSegment(myHero.pos, enemy.pos, placementPos)
+                    if GetDistance(myHero.pos, spellLine) <= width then
+                        self:UseHeal()
+                    end
+                end
 			end
         -- exhaust self
-            if self.Menu.summs.summexhaust.summexhaustuse:Value() and ValidTarget(enemy, 535 + myHero.boundingRadius) and myHero.health / myHero.maxHealth <= self.Menu.summs.summexhaust.summexhaustusehp:Value() / 100 and enemy.activeSpell.valid and enemy.activeSpell.target == myHero.handle and enemy.activeSpell.spellWasCast and self.Menu.summs.summexhaust.enemiestohit[enemy.charName]:Value() then
-                self:UseExhaust(enemy)
+            if self.Menu.summs.summexhaust.summexhaustuse:Value() and ValidTarget(enemy, 535 + myHero.boundingRadius) and myHero.health / myHero.maxHealth <= self.Menu.summs.summexhaust.summexhaustusehp:Value() / 100 and enemy.activeSpell.valid and not enemy.activeSpell.isStopped and self.Menu.summs.summexhaust.enemiestohit[enemy.charName]:Value() and self:SmoothChecks() then
+                if enemy.activeSpell.target == myHero.handle then
+                    self:UseExhaust(enemy)
+                else
+                    local placementPos = enemy.activeSpell.placementPos
+                    local width = myHero.boundingRadius + 50
+                    if enemy.activeSpell.width > 0 then width = width + enemy.activeSpell.width end
+                    local spellLine = ClosestPointOnLineSegment(myHero.pos, enemy.pos, placementPos)
+                    if GetDistance(myHero.pos, spellLine) <= width then
+                        self:UseExhaust(enemy)
+                    end
+                end
             end
 		-- barrier
-			if self.Menu.summs.summbarrier.summbarrieruse:Value() and myHero.health / myHero.maxHealth <= self.Menu.summs.summbarrier.summbarrierusehp:Value() / 100 and enemy.activeSpell.target == myHero.handle and enemy.activeSpell.valid and enemy.activeSpell.spellWasCast then
-				self:UseBarrier()
+			if self.Menu.summs.summbarrier.summbarrieruse:Value() and myHero.health / myHero.maxHealth <= self.Menu.summs.summbarrier.summbarrierusehp:Value() / 100 and enemy.activeSpell.valid and not enemy.activeSpell.isStopped then
+				if enemy.activeSpell.target == myHero.handle then
+                    self:UseBarrier()
+                else
+                    local placementPos = enemy.activeSpell.placementPos
+                    local width = myHero.boundingRadius + 50
+                    if enemy.activeSpell.width > 0 then width = width + enemy.activeSpell.width end
+                    local spellLine = ClosestPointOnLineSegment(myHero.pos, enemy.pos, placementPos)
+                    if GetDistance(myHero.pos, spellLine) <= width then
+                        self:UseBarrier()
+                    end
+                end
 			end
 		-- cleanse
 			if self.Menu.summs.summcleanse.summcleanseuse:Value() and IsCleanse(myHero) >= 0.5 and ValidTarget(enemy, self.Menu.summs.summcleanse.summcleanserange:Value() + myHero.boundingRadius + enemy.boundingRadius) then
@@ -687,15 +741,15 @@ function Activator:Loop()
 			end
 		-- ignite
 			local IgnDmg = 50 + 20 * myHero.levelData.lvl
-			if ValidTarget(enemy, 535 + myHero.boundingRadius) and self.Menu.summs.summignite.summigniteuse:Value() and enemy.health <= IgnDmg and self.Menu.summs.summignite.enemiestohit[enemy.charName] and self.Menu.summs.summignite.enemiestohit[enemy.charName]:Value() then
+			if ValidTarget(enemy, 535 + myHero.boundingRadius) and self.Menu.summs.summignite.summigniteuse:Value() and enemy.health <= IgnDmg and self.Menu.summs.summignite.enemiestohit[enemy.charName] and self.Menu.summs.summignite.enemiestohit[enemy.charName]:Value() and self:SmoothChecks() then
 				self:UseIgnite(enemy)
 			end
 		-- redsmite
-			if enemy and ValidTarget(enemy, 500 + myHero.boundingRadius + enemy.boundingRadius) and self.Menu.summs.summsmite.summsmitered:Value() and enemy.health / enemy.maxHealth <= self.Menu.summs.summsmite.summsmiteredhp:Value() / 100 and self.Menu.summs.summsmite.summredenemies[enemy.charName] and self.Menu.summs.summsmite.summredenemies[enemy.charName]:Value() then
+			if enemy and ValidTarget(enemy, 500 + myHero.boundingRadius + enemy.boundingRadius) and self.Menu.summs.summsmite.summsmitered:Value() and enemy.health / enemy.maxHealth <= self.Menu.summs.summsmite.summsmiteredhp:Value() / 100 and self.Menu.summs.summsmite.summredenemies[enemy.charName] and self.Menu.summs.summsmite.summredenemies[enemy.charName]:Value() and self:SmoothChecks() then
 				self:UseRedSmite(enemy)
 			end
 		-- bluesmite
-			if enemy and ValidTarget(enemy, 500 + myHero.boundingRadius + enemy.boundingRadius) and self.Menu.summs.summsmite.summsmiteblue:Value() and enemy.health / enemy.maxHealth <= self.Menu.summs.summsmite.summsmitebluehp:Value() / 100 and self.Menu.summs.summsmite.summblueenemies[enemy.charName] and self.Menu.summs.summsmite.summblueenemies[enemy.charName]:Value() then
+			if enemy and ValidTarget(enemy, 500 + myHero.boundingRadius + enemy.boundingRadius) and self.Menu.summs.summsmite.summsmiteblue:Value() and enemy.health / enemy.maxHealth <= self.Menu.summs.summsmite.summsmitebluehp:Value() / 100 and self.Menu.summs.summsmite.summblueenemies[enemy.charName] and self.Menu.summs.summsmite.summblueenemies[enemy.charName]:Value() and self:SmoothChecks() then
 				self:UseBlueSmite(enemy)
 			end
 		-- QSS
@@ -709,27 +763,77 @@ function Activator:Loop()
 				end
 			end
 		-- redemption self
-			if self.Menu.defitems.itemredemption.itemredemptionuse:Value() and myHero.health / myHero.maxHealth <= self.Menu.defitems.itemredemption.itemredemptionusehp:Value() / 100 and enemy.activeSpell.target == myHero.handle and enemy.activeSpell.valid and enemy.activeSpell.spellWasCast and not _G.SDK.Attack:IsActive() then
-				self:UseRedemption(myHero)
+			if self.Menu.defitems.itemredemption.itemredemptionuse:Value() and myHero.health / myHero.maxHealth <= self.Menu.defitems.itemredemption.itemredemptionusehp:Value() / 100 and enemy.activeSpell.valid and not enemy.activeSpell.isStopped and self:SmoothChecks() then
+                if enemy.activeSpell.target == myHero.handle then
+                    self:UseRedemption(myHero)
+                else
+                    local placementPos = enemy.activeSpell.placementPos
+                    local width = myHero.boundingRadius + 50
+                    if enemy.activeSpell.width > 0 then width = width + enemy.activeSpell.width end
+                    local spellLine = ClosestPointOnLineSegment(myHero.pos, enemy.pos, placementPos)
+                    if GetDistance(myHero.pos, spellLine) <= width then
+                        self:UseRedemption(myHero)
+                    end
+                end
 			end
 		-- mikaels self
-			if self.Menu.defitems.itemmikaels.itemmikaelsuse:Value() and (myHero.health / myHero.maxHealth <= self.Menu.defitems.itemmikaels.itemmikaelsusehp:Value() / 100 or IsCleanse(myHero) > 0.5) and enemy.activeSpell.target == myHero.handle and enemy.activeSpell.valid and enemy.activeSpell.spellWasCast and not _G.SDK.Attack:IsActive() then
-				self:UseMikaels(myHero)
+			if self.Menu.defitems.itemmikaels.itemmikaelsuse:Value() and (myHero.health / myHero.maxHealth <= self.Menu.defitems.itemmikaels.itemmikaelsusehp:Value() / 100 or IsCleanse(myHero) > 0.5)  and enemy.activeSpell.valid and not enemy.activeSpell.isStopped and self:SmoothChecks() then
+                if enemy.activeSpell.target == myHero.handle then
+                    self:UseMikaels(myHero)
+                else
+                    local placementPos = enemy.activeSpell.placementPos
+                    local width = myHero.boundingRadius + 50
+                    if enemy.activeSpell.width > 0 then width = width + enemy.activeSpell.width end
+                    local spellLine = ClosestPointOnLineSegment(myHero.pos, enemy.pos, placementPos)
+                    if GetDistance(myHero.pos, spellLine) <= width then
+                        self:UseMikaels(myHero)
+                    end
+                end
 			end
 		-- stopwatch
-			if self.Menu.defitems.itemzhonyas.itemstopwatchuse:Value() and myHero.health / myHero.maxHealth <= self.Menu.defitems.itemzhonyas.itemstopwatchusehp:Value() / 100 and enemy.activeSpell.target == myHero.handle and enemy.activeSpell.valid and enemy.activeSpell.spellWasCast then
-				self:UseStpWth()
+			if self.Menu.defitems.itemzhonyas.itemstopwatchuse:Value() and myHero.health / myHero.maxHealth <= self.Menu.defitems.itemzhonyas.itemstopwatchusehp:Value() / 100 and enemy.activeSpell.valid and not enemy.activeSpell.isStopped then
+				if enemy.activeSpell.target == myHero.handle then
+                    self:UseStpWth()
+                else
+                    local placementPos = enemy.activeSpell.placementPos
+                    local width = myHero.boundingRadius + 50
+                    if enemy.activeSpell.width > 0 then width = width + enemy.activeSpell.width end
+                    local spellLine = ClosestPointOnLineSegment(myHero.pos, enemy.pos, placementPos)
+                    if GetDistance(myHero.pos, spellLine) <= width then
+                        self:UseStpWth()
+                    end
+                end
 			end
 		-- zhonyas 
-			if self.Menu.defitems.itemzhonyas.itemzhonyasuse:Value() and myHero.health / myHero.maxHealth <= self.Menu.defitems.itemzhonyas.itemzhonyasusehp:Value() / 100 and enemy.activeSpell.target == myHero.handle and enemy.activeSpell.valid and enemy.activeSpell.spellWasCast then
-				self:UseZhonyas()
+			if self.Menu.defitems.itemzhonyas.itemzhonyasuse:Value() and myHero.health / myHero.maxHealth <= self.Menu.defitems.itemzhonyas.itemzhonyasusehp:Value() / 100 and enemy.activeSpell.valid and not enemy.activeSpell.isStopped then
+				if enemy.activeSpell.target == myHero.handle then
+                    self:UseZhonyas()
+                else
+                    local placementPos = enemy.activeSpell.placementPos
+                    local width = myHero.boundingRadius + 50
+                    if enemy.activeSpell.width > 0 then width = width + enemy.activeSpell.width end
+                    local spellLine = ClosestPointOnLineSegment(myHero.pos, enemy.pos, placementPos)
+                    if GetDistance(myHero.pos, spellLine) <= width then
+                        self:UseZhonyas()
+                    end
+                end
 			end
 		-- locket self
-			if self.Menu.defitems.itemsolari.itemsolariuse:Value() and myHero.health / myHero.maxHealth <= self.Menu.defitems.itemsolari.itemsolariusehp:Value() / 100 and enemy.activeSpell.target == myHero.handle and enemy.activeSpell.valid and enemy.activeSpell.spellWasCast and not _G.SDK.Attack:IsActive() then
-				self:UseLocket()
+			if self.Menu.defitems.itemsolari.itemsolariuse:Value() and myHero.health / myHero.maxHealth <= self.Menu.defitems.itemsolari.itemsolariusehp:Value() / 100 and enemy.activeSpell.valid and not enemy.activeSpell.isStopped and not _G.SDK.Attack:IsActive() then
+				if enemy.activeSpell.target == myHero.handle then
+                    self:UseLocket()
+                else
+                    local placementPos = enemy.activeSpell.placementPos
+                    local width = myHero.boundingRadius + 50
+                    if enemy.activeSpell.width > 0 then width = width + enemy.activeSpell.width end
+                    local spellLine = ClosestPointOnLineSegment(myHero.pos, enemy.pos, placementPos)
+                    if GetDistance(myHero.pos, spellLine) <= width then
+                        self:UseLocket()
+                    end
+                end
 			end
 		-- ironspike
-			if self.Menu.targitems.itemironspk.itemironspkuse:Value() and EnemiesIronSpike == self.Menu.targitems.itemironspk.itemironspkusetar:Value() and not _G.SDK.Attack:IsActive() then
+			if self.Menu.targitems.itemironspk.itemironspkuse:Value() and EnemiesIronSpike == self.Menu.targitems.itemironspk.itemironspkusetar:Value() and myHero.attackData.state ~= 2 and self:CastingChecks() then
 				self:UseIronSpk()
 			end
 		-- goredrinker
@@ -739,7 +843,7 @@ function Activator:Loop()
 				self:UseGoreDrinker()
 			end
 		-- stridebreaker 
-			if self.Menu.targitems.itemstidebreaker.itemstidebreakeruse:Value() and ValidTarget(enemy, 525 + myHero.boundingRadius + enemy.boundingRadius) and self.Menu.targitems.itemstidebreaker.enemiestohit[enemy.charName] and self.Menu.targitems.itemstidebreaker.enemiestohit[enemy.charName]:Value() and self:CastingChecks() and not _G.SDK.Attack:IsActive() then
+			if self.Menu.targitems.itemstidebreaker.itemstidebreakeruse:Value() and ValidTarget(enemy, 525 + myHero.boundingRadius + enemy.boundingRadius) and self.Menu.targitems.itemstidebreaker.enemiestohit[enemy.charName] and self.Menu.targitems.itemstidebreaker.enemiestohit[enemy.charName]:Value() and self:SmoothChecks() then
 				self:UseStrideBreaker(enemy)
 			end
 		-- omen
@@ -755,19 +859,19 @@ function Activator:Loop()
 				self:UseYoumuus()
 			end
 		-- prowlers
-			if self.Menu.targitems.itemprowler.itemprowleruse:Value() and ValidTarget(enemy, 450 + myHero.boundingRadius + enemy.boundingRadius) and self.Menu.targitems.itemprowler.enemiestohit[enemy.charName] and self.Menu.targitems.itemprowler.enemiestohit[enemy.charName]:Value() and self:CastingChecks() and not _G.SDK.Attack:IsActive() then
+			if self.Menu.targitems.itemprowler.itemprowleruse:Value() and ValidTarget(enemy, 450 + myHero.boundingRadius + enemy.boundingRadius) and self.Menu.targitems.itemprowler.enemiestohit[enemy.charName] and self.Menu.targitems.itemprowler.enemiestohit[enemy.charName]:Value() and self:SmoothChecks() then
 				self:UseClaw(enemy)
 			end
 		-- rocketbelt
-			if self.Menu.targitems.itemrocket.itemrocketuse:Value() and ValidTarget(enemy, self.Menu.targitems.itemrocket.itemrocketuserange:Value() + myHero.boundingRadius + enemy.boundingRadius) and self.Menu.targitems.itemrocket.enemiestohit[enemy.charName] and self.Menu.targitems.itemrocket.enemiestohit[enemy.charName]:Value() and self:CastingChecks() and not _G.SDK.Attack:IsActive() then
+			if self.Menu.targitems.itemrocket.itemrocketuse:Value() and ValidTarget(enemy, self.Menu.targitems.itemrocket.itemrocketuserange:Value() + myHero.boundingRadius + enemy.boundingRadius) and self.Menu.targitems.itemrocket.enemiestohit[enemy.charName] and self.Menu.targitems.itemrocket.enemiestohit[enemy.charName]:Value() and self:SmoothChecks() then
 				self:UseRocketBelt(enemy)
 			end
 		-- frost
-			if self.Menu.targitems.itemevfrost.itemevfrostuse:Value() and ValidTarget(enemy, 800 + myHero.boundingRadius + enemy.boundingRadius) and self.Menu.targitems.itemevfrost.enemiestohit[enemy.charName] and self.Menu.targitems.itemevfrost.enemiestohit[enemy.charName]:Value() and self:CastingChecks() and not _G.SDK.Attack:IsActive() then
+			if self.Menu.targitems.itemevfrost.itemevfrostuse:Value() and ValidTarget(enemy, 800 + myHero.boundingRadius + enemy.boundingRadius) and self.Menu.targitems.itemevfrost.enemiestohit[enemy.charName] and self.Menu.targitems.itemevfrost.enemiestohit[enemy.charName]:Value() and self:SmoothChecks() then
 				self:UseFrost(enemy)
 			end
 		-- galeforce
-			if self.Menu.targitems.itemgale.itemgaleuse:Value() and ValidTarget(enemy, 700 + myHero.boundingRadius + enemy.boundingRadius) and enemy.health / enemy.maxHealth <= self.Menu.targitems.itemgale.itemgaleusehp:Value() / 100 and self.Menu.targitems.itemgale.enemiestohit[enemy.charName] and self.Menu.targitems.itemgale.enemiestohit[enemy.charName]:Value() and self:CastingChecks() and not _G.SDK.Attack:IsActive() then
+			if self.Menu.targitems.itemgale.itemgaleuse:Value() and ValidTarget(enemy, 700 + myHero.boundingRadius + enemy.boundingRadius) and enemy.health / enemy.maxHealth <= self.Menu.targitems.itemgale.itemgaleusehp:Value() / 100 and self.Menu.targitems.itemgale.enemiestohit[enemy.charName] and self.Menu.targitems.itemgale.enemiestohit[enemy.charName]:Value() and self:SmoothChecks() then
 				GalePos = self:GaleLeftRight(enemy)
 				if GalePos ~= nil then
 					self:UseGale(GalePos)
@@ -782,28 +886,72 @@ function Activator:Loop()
 					allycount = allycount + 1
 				end
 			-- ally heal
-				if self.Menu.summs.summheal.summhealmate:Value() and myHero.health / myHero.maxHealth <= self.Menu.summs.summheal.summhealmatehp:Value() / 100 and self.Menu.summs.summheal.alliestoheal[ally.charName] and self.Menu.summs.summheal.alliestoheal[ally.charName]:Value() and enemy.activeSpell.target == ally.handle and enemy.activeSpell.valid and enemy.activeSpell.spellWasCast and ValidTarget(ally, 850 + myHero.boundingRadius + ally.boundingRadius) then
-					self:UseHeal(ally)
+				if self.Menu.summs.summheal.summhealmate:Value() and myHero.health / myHero.maxHealth <= self.Menu.summs.summheal.summhealmatehp:Value() / 100 and self.Menu.summs.summheal.alliestoheal[ally.charName] and self.Menu.summs.summheal.alliestoheal[ally.charName]:Value() and enemy.activeSpell.valid and not enemy.activeSpell.isStopped and ValidTarget(ally, 850 + myHero.boundingRadius + ally.boundingRadius) then
+					if enemy.activeSpell.target == ally.handle then
+                        self:UseHeal(ally)
+                    else
+                        local placementPos = enemy.activeSpell.placementPos
+                        local width = ally.boundingRadius + 50
+                        if enemy.activeSpell.width > 0 then width = width + enemy.activeSpell.width end
+                        local spellLine = ClosestPointOnLineSegment(ally.pos, enemy.pos, placementPos)
+                        if GetDistance(ally.pos, spellLine) <= width then
+                            self:UseHeal(ally)
+                        end
+                    end
 				end
             -- exhaust ally
-                if self.Menu.summs.summexhaust.summexhaustmate:Value() and IsValid(ally) and ValidTarget(enemy, 535 + myHero.boundingRadius) and ally.health / ally.maxHealth <= self.Menu.summs.summexhaust.summexhaustmatehp:Value() / 100 and enemy.activeSpell.target == ally.handle and enemy.activeSpell.valid and enemy.activeSpell.spellWasCast and self.Menu.summs.summexhaust.enemiestohit[enemy.charName]:Value() then
-                    self:UseExhaust(enemy)
+                if self.Menu.summs.summexhaust.summexhaustmate:Value() and IsValid(ally) and ValidTarget(enemy, 535 + myHero.boundingRadius) and ally.health / ally.maxHealth <= self.Menu.summs.summexhaust.summexhaustmatehp:Value() / 100 and enemy.activeSpell.valid and not enemy.activeSpell.isStopped and self.Menu.summs.summexhaust.enemiestohit[enemy.charName]:Value() then
+                    if enemy.activeSpell.target == ally.handle then
+                        self:UseExhaust(enemy)
+                    else
+                        local placementPos = enemy.activeSpell.placementPos
+                        local width = ally.boundingRadius + 50
+                        if enemy.activeSpell.width > 0 then width = width + enemy.activeSpell.width end
+                        local spellLine = ClosestPointOnLineSegment(ally.pos, enemy.pos, placementPos)
+                        if GetDistance(ally.pos, spellLine) <= width then
+                            self:UseExhaust(enemy)
+                        end
+                    end
                 end
 			-- ally redemption
-				if self.Menu.defitems.itemredemption.itemredemptionmate:Value() and ally.health / ally.maxHealth <= self.Menu.defitems.itemredemption.itemredemptionmatehp:Value() / 100 and enemy.activeSpell.target == ally.handle and enemy.activeSpell.valid and enemy.activeSpell.spellWasCast and ValidTarget(ally, 5500 + myHero.boundingRadius + ally.boundingRadius) and self.Menu.defitems.itemredemption.alliestoheal[ally.charName] and self.Menu.defitems.itemredemption.alliestoheal[ally.charName]:Value() and not _G.SDK.Attack:IsActive() then
-					if ally.pos:ToScreen().onScreen then
-						self:UseRedemption(ally)
-					else
-						self:UseRedemptionMM(ally)
-					end
+				if self.Menu.defitems.itemredemption.itemredemptionmate:Value() and ally.health / ally.maxHealth <= self.Menu.defitems.itemredemption.itemredemptionmatehp:Value() / 100 and enemy.activeSpell.valid and not enemy.activeSpell.isStopped and ValidTarget(ally, 5500 + myHero.boundingRadius + ally.boundingRadius) and self.Menu.defitems.itemredemption.alliestoheal[ally.charName] and self.Menu.defitems.itemredemption.alliestoheal[ally.charName]:Value() and not _G.SDK.Attack:IsActive() then
+					if enemy.activeSpell.target == ally.handle then
+                        if ally.pos:ToScreen().onScreen then
+                            self:UseRedemption(ally)
+                        else
+                            self:UseRedemptionMM(ally)
+                        end
+                    else
+                        local placementPos = enemy.activeSpell.placementPos
+                        local width = ally.boundingRadius + 50
+                        if enemy.activeSpell.width > 0 then width = width + enemy.activeSpell.width end
+                        local spellLine = ClosestPointOnLineSegment(ally.pos, enemy.pos, placementPos)
+                        if GetDistance(ally.pos, spellLine) <= width then
+                            if ally.pos:ToScreen().onScreen then
+                                self:UseRedemption(ally)
+                            else
+                                self:UseRedemptionMM(ally)
+                            end
+                        end
+                    end
 				end
 			-- ally mikaels 
 				if self.Menu.defitems.itemredemption.itemredemptionmate:Value() and enemy and IsValid(enemy) and GetDistance(ally.pos, enemy.pos) < self.Menu.defitems.itemmikaels.itemmikaelsmaterange:Value() + ally.boundingRadius + enemy.boundingRadius and IsCleanse(ally) > 0.5 and ValidTarget(ally, 600 + myHero.boundingRadius + ally.boundingRadius) and self.Menu.defitems.itemmikaels.alliestoheal[ally.charName] and self.Menu.defitems.itemmikaels.alliestoheal[ally.charName]:Value() and not _G.SDK.Attack:IsActive() then
 					self:UseMikaels(ally)
 				end
 			-- ally locket
-				if self.Menu.defitems.itemsolari.itemsolarimate:Value() and ally.health / ally.maxHealth <= self.Menu.defitems.itemsolari.itemsolarimatehp:Value() / 100 and enemy.activeSpell.target == ally.handle and enemy.activeSpell.valid and enemy.activeSpell.spellWasCast and self.Menu.defitems.itemsolari.alliestoheal[ally.charName] and self.Menu.defitems.itemsolari.alliestoheal[ally.charName]:Value() and ValidTarget(ally, 800 + myHero.boundingRadius + ally.boundingRadius) and not _G.SDK.Attack:IsActive() then
-					self:UseLocket(ally)
+				if self.Menu.defitems.itemsolari.itemsolarimate:Value() and ally.health / ally.maxHealth <= self.Menu.defitems.itemsolari.itemsolarimatehp:Value() / 100 and enemy.activeSpell.valid and not enemy.activeSpell.isStopped and self.Menu.defitems.itemsolari.alliestoheal[ally.charName] and self.Menu.defitems.itemsolari.alliestoheal[ally.charName]:Value() and ValidTarget(ally, 800 + myHero.boundingRadius + ally.boundingRadius) and not _G.SDK.Attack:IsActive() then
+					if enemy.activeSpell.target == ally.handle then
+                        self:UseLocket(ally)
+                    else
+                        local placementPos = enemy.activeSpell.placementPos
+                        local width = ally.boundingRadius + 50
+                        if enemy.activeSpell.width > 0 then width = width + enemy.activeSpell.width end
+                        local spellLine = ClosestPointOnLineSegment(ally.pos, enemy.pos, placementPos)
+                        if GetDistance(ally.pos, spellLine) <= width then
+                            self:UseLocket(ally)
+                        end
+                    end
 				end
 			-- ally shurelyas
 				if self.Menu.targitems.itemshure.itemshureuse:Value() and ValidTarget(enemy, self.Menu.targitems.itemshure.itemshurerange:Value() + myHero.boundingRadius + enemy.boundingRadius) and AlliesAround == self.Menu.targitems.itemshure.itemshureally:Value() and self.Menu.targitems.itemshure.enemiestohit[enemy.charName] and self.Menu.targitems.itemshure.enemiestohit[enemy.charName]:Value()and not _G.SDK.Attack:IsActive() then
@@ -823,7 +971,7 @@ function Activator:Autolvl()
     local spellPoints = myHero.levelData.lvlPts 
     local Level = myHero.levelData.lvl
 
-    if spellPoints > 0 and self.Menu.autolvl.autolvluse:Value() and Game.IsOnTop() then
+    if spellPoints > 0 and self.Menu.autolvl.autolvluse:Value() and Game.IsOnTop() and Level >= self.Menu.autolvl.autolvllvl:Value() then
         if Level == 6 or Level == 11 or Level == 16 then
             Control.KeyDown(HK_LUS)
             Control.KeyDown(HK_R)
@@ -1022,13 +1170,13 @@ end
 
 
 function Activator:Draw()
-	--Draw.Circle(myHero.pos, 575 + myHero.boundingRadius, 2, Draw.Color(237, 255, 255, 255))
+	--Draw.Circle(myHero.pos, 1175, 1, Draw.Color(237, 255, 255, 255))
 end
 
 function Activator:ItemSpells()
-	FrostSpellData = {speed = 1000, range = 935, delay = 0.15, radius = 60, collision = {}, type = "linear"}
-	BeltSpellData = {speed = 1600, range = 1000, delay = 0.31, angle = 45, radius = 60, collision = {"minion"}, type = "conic"}
-	BreakerSpellData = {speed = 1500, range = 500, delay = 0.21, radius = 60, collision = {}, type = "circular"}
+	FrostSpellData = {speed = 1200, range = 935, delay = 0.20, radius = 50, collision = {}, type = "linear"}
+	BeltSpellData = {speed = 1600, range = 1000, delay = 0.31, angle = 45, radius = 50, collision = {"minion"}, type = "conic"}
+	BreakerSpellData = {speed = 1500, range = 500, delay = 0.21, radius = 50, collision = {}, type = "circular"}
 end
 -- summs 
 function Activator:UseHeal(unit)
@@ -1119,13 +1267,10 @@ end
 function Activator:UseRedemptionMM(unit)
 	local ItemRedem = GetItemSlot(myHero, 3107)
 	if ItemRedem > 0 and myHero:GetSpellData(ItemRedem).currentCd == 0 then
-		local MMSpot = Vector(unit.pos):ToMM()
-		local MouseSpotBefore = mousePos
-		Control.SetCursorPos(MMSpot.x, MMSpot.y)
-		Control.KeyDown(ItemHotKey[ItemRedem]); Control.KeyUp(ItemHotKey[ItemRedem])
-		DelayAction(function() Control.SetCursorPos(MouseSpotBefore) end, 0.20)
+        MMCast(unit.pos, ItemHotKey[ItemRedem])
 	end
 end
+
 function Activator:UseMikaels(unit)
 	local ItemMika = GetItemSlot(myHero, 3222)
 	if ItemMika > 0 and myHero:GetSpellData(ItemMika).currentCd == 0 then
@@ -1309,5 +1454,3 @@ end
 function OnLoad()
     Activator()
 end
-
-
