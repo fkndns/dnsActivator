@@ -1334,6 +1334,8 @@ function Activator:GetSmiteDamage()
         return 900
     elseif myHero:GetSpellData(SUMMONER_1).name == "S5_SummonerSmitePlayerGanker" or myHero:GetSpellData(SUMMONER_2).name == "S5_SummonerSmitePlayerGanker" then
         return 900
+    else
+    return 0
     end
 end
 
