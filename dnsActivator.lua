@@ -471,7 +471,7 @@ function Activator:LoadMenu()
 --self.Menu.summs:MenuElement({id = "summclarity", name = "Summoner Clarity", type = MENU})
 	self.Menu.summs:MenuElement({id = "summcleanse", name = "Summoner Cleanse", type = MENU})
 	self.Menu.summs:MenuElement({id = "summignite", name = "Summoner Ignite", type = MENU})
-	self.Menu.summs:MenuElement({id = "summsmite", name = "Summoner Smite (Enemy)", type = MENU})
+	self.Menu.summs:MenuElement({id = "summsmite", name = "Summoner Smite", type = MENU})
 -- defitems
 	self.Menu.defitems:MenuElement({id = "itemqss", name = "QSS Items", type = MENU})
 	self.Menu.defitems:MenuElement({id = "itemredemption", name = "Redemption", type = MENU})
