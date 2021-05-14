@@ -58,6 +58,22 @@ end
 --]]
 local ItemHotKey = {[ITEM_1] = HK_ITEM_1, [ITEM_2] = HK_ITEM_2,[ITEM_3] = HK_ITEM_3, [ITEM_4] = HK_ITEM_4, [ITEM_5] = HK_ITEM_5, [ITEM_6] = HK_ITEM_6,}
 
+local Camps = {
+    "SRU_Baron",
+    "SRU_RiftHerald",
+    "SRU_Dragon_Water",
+    "SRU_Dragon_Fire",
+    "SRU_Dragon_Earth",
+    "SRU_Dragon_Air",
+    "SRU_Dragon_Elder",
+    "SRU_Blue",
+    "SRU_Red",
+    "SRU_Gromp",
+    "SRU_Murkwolf",
+    "SRU_Razorbeak",
+    "SRU_Krug",
+    "Sru_Crab",
+}
 local function GetInventorySlotItem(itemID)
     assert(type(itemID) == "number", "GetInventorySlotItem: wrong argument types (<number> expected)")
     for _, j in pairs({ITEM_1, ITEM_2, ITEM_3, ITEM_4, ITEM_5, ITEM_6}) do
@@ -437,6 +453,8 @@ function Activator:__init()
 	Callback.Add("Draw", function() self:Draw() end)
 end
 
+local SmiteDamage = 0
+
 function Activator:LoadMenu()
 -- main menu
 	self.Menu = MenuElement({type = MENU, id = "Activator", name = "dnsActivator"})
@@ -507,6 +525,15 @@ function Activator:LoadMenu()
 	self.Menu.summs.summsmite:MenuElement({id = "summsmitebluehp", name = "Use BlueSmite if enemy lower then", value = 30, min = 5, max = 95, step = 5, identifier = "%"})
 	self.Menu.summs.summsmite:MenuElement({id = "summblueenemies", name = "Enemies to use on", type = MENU})
 	self.Menu.summs.summsmite:MenuElement({id = "smitespace", name = "Only Smites enemy if 2 SmiteStacks", type = SPACE})
+    self.Menu.summs.summsmite:MenuElement({id = "smitecamps", name = "Smite Monsters", type = MENU})
+--campsmite
+    self.Menu.summs.summsmite.smitecamps:MenuElement({id = "smitedrake", name = "Use [Smite] on Drakes", value = true})
+    self.Menu.summs.summsmite.smitecamps:MenuElement({id = "smiteherald", name = "Use [Smite] on Herald", value = true})
+    self.Menu.summs.summsmite.smitecamps:MenuElement({id = "smitebaron", name = "Use [Smite] on Baron", value = true})
+    self.Menu.summs.summsmite.smitecamps:MenuElement({id = "smiteredblue", name = "[Smite] Red/Blue if Contested", value = true})
+    self.Menu.summs.summsmite.smitecamps:MenuElement({id = "smitecrab", name = "[Smite] Crab if Contested", value = true})
+    self.Menu.summs.summsmite.smitecamps:MenuElement({id = "smitelow", name = "[Smite] Camp for Health in Fight", value = true})
+    self.Menu.summs.summsmite.smitecamps:MenuElement({id = "smitelowhp", name = "[Smite] Camp HP", value = 30, min = 5, max = 95, step = 5, identifier = "%"})
 -- ignite 
 	self.Menu.summs.summignite:MenuElement({id = "summigniteuse", name = "Use Ignite", value = true})
 	self.Menu.summs.summignite:MenuElement({id = "enemiestohit", name = "Enemies to use on", type = MENU})
@@ -539,46 +566,57 @@ function Activator:LoadMenu()
 -- ironspike whisp
 	self.Menu.targitems.itemironspk:MenuElement({id = "itemironspkuse", name = "Use Ironspike Whisp", value = true})
 	self.Menu.targitems.itemironspk:MenuElement({id = "itemironspkusetar", name = "If more enemies then", value = 2, min = 0, max = 5, step = 1})
+    self.Menu.targitems.itemironspk:MenuElement({id = "itemironspkcombo", name = "Use only in Combo Mode", value = true})
 	self.Menu.targitems.itemironspk:MenuElement({id = "enemiestohit", name = "Enemies to use on", type = MENU})
 -- goredrinker
 	self.Menu.targitems.itemgoredrnk:MenuElement({id = "itemgoredrnkuse", name = "Use Goredrinker", value = true})
 	self.Menu.targitems.itemgoredrnk:MenuElement({id = "itemgoredrnkusetar", name = "If more enemies then", value = 2, min = 1, max = 5, step = 1})
 	self.Menu.targitems.itemgoredrnk:MenuElement({id = "itemgoredrnkusehp", name = "If HP lower then", value = 40, min = 5, max = 95, step = 5, identifier = "%"})
+    self.Menu.targitems.itemgoredrnk:MenuElement({id = "itemgoredrnkcombo", name = "Use only in Combo Mode", value = true})
 	self.Menu.targitems.itemgoredrnk:MenuElement({id = "enemiestohit", name = "Enemies to use on", type = MENU})
 	self.Menu.targitems.itemgoredrnk:MenuElement({id = "gorespace", name = "Enemies to hit and HP are seperate things", type = SPACE})
 -- stridebreaker
 	self.Menu.targitems.itemstidebreaker:MenuElement({id = "itemstidebreakeruse", name = "Use Stridebreaker", value = true})
+    self.Menu.targitems.itemstidebreaker:MenuElement({id = "itemstidebreakercombo", name = "Use only in Combo Mode", value = true})
 	self.Menu.targitems.itemstidebreaker:MenuElement({id = "enemiestohit", name = "Enemies to use on", type = MENU})
 -- shurelyas
 	self.Menu.targitems.itemshure:MenuElement({id = "itemshureuse", name = "Use Shurelya's Battlesong", value = true})
 	self.Menu.targitems.itemshure:MenuElement({id = "itemshurerange", name = "If enemy closer then", value = 900, min = 100, max = 1500, step = 100})
 	self.Menu.targitems.itemshure:MenuElement({id = "itemshureally", name = "If more allies then", value = 1, min = 0, max = 5, step = 1})
+    self.Menu.targitems.itemshure:MenuElement({id = "itemshurecombo", name = "Use only in Combo Mode", value = true})
 	self.Menu.targitems.itemshure:MenuElement({id = "enemiestohit", name = "Enemies to use on", type = MENU})
 -- randuins
 	self.Menu.targitems.itemranduin:MenuElement({id = "itemranduinuse", name = "Use Randuin's Omen", value = true})
 	self.Menu.targitems.itemranduin:MenuElement({id = "itemranduintar", name = "If more enemies then", value = 2, min = 0, max = 5, step = 1})
+    self.Menu.targitems.itemranduin:MenuElement({id = "itemranduincombo", name = "Use only in Combo Mode", value = true})
 	self.Menu.targitems.itemranduin:MenuElement({id = "enemiestohit", name = "Enemies to use on", type = MENU})
 -- chempunk
 	self.Menu.targitems.itemchempunk:MenuElement({id = "itemchempunkuse", name = "Use Turbo Chempunk", value = true})
 	self.Menu.targitems.itemchempunk:MenuElement({id = "itemchempunkrange", name = "If enemy closer then", value = 700, min = 200, max = 1500, step = 100})
+    self.Menu.targitems.itemchempunk:MenuElement({id = "itemchempunkcombo", name = "Use only in Combo Mode", value = true})
 	self.Menu.targitems.itemchempunk:MenuElement({id = "enemiestohit", name = "Enemies to use on", type = true})
 -- youmuu
 	self.Menu.targitems.itemyoumuu:MenuElement({id = "itemyoumuuuse", name = "Use Youmuu's Ghostblade", value = true})
 	self.Menu.targitems.itemyoumuu:MenuElement({id = "itemyoumuuuserange", name = "If enemy closer then", value = 700, min = 200, max = 1500, step = 100})
-	self.Menu.targitems.itemyoumuu:MenuElement({id = "enemiestohit", name = "Enemies to use on", type = MENU})
+    self.Menu.targitems.itemyoumuu:MenuElement({id = "itemyoumuusecombo", name = "Use only in Combo Mode", value = true})
+    self.Menu.targitems.itemyoumuu:MenuElement({id = "enemiestohit", name = "Enemies to use on", type = MENU})
 -- rocketbelt
 	self.Menu.targitems.itemrocket:MenuElement({id = "itemrocketuse", name = "Use Hextech Rocketbelt", value = true})
 	self.Menu.targitems.itemrocket:MenuElement({id = "itemrocketuserange", name = "If enemy closer then", value = 700, min = 200, max = 1500, step = 100})
+    self.Menu.targitems.itemrocket:MenuElement({id = "itemrocketcombo", name = "Use only in Combo Mode", value = true})
 	self.Menu.targitems.itemrocket:MenuElement({id = "enemiestohit", name = "Enemies to use on", type = MENU})
 -- prowlers claw
 	self.Menu.targitems.itemprowler:MenuElement({id = "itemprowleruse", name = "Use Prowler's Claw", value = true})
+    self.Menu.targitems.itemprowler:MenuElement({id = "itemprowlercombo", name = "Use only in Combo Mode", value = true})
 	self.Menu.targitems.itemprowler:MenuElement({id = "enemiestohit", name = "Enemies to use on", type = MENU})
 -- everfrost
 	self.Menu.targitems.itemevfrost:MenuElement({id = "itemevfrostuse", name = "Use Everfrost", value = true})
+    self.Menu.targitems.itemevfrost:MenuElement({id = "itemevfrostcombo", name = "Use only in Combo Mode", value = true})
 	self.Menu.targitems.itemevfrost:MenuElement({id = "enemiestohit", name = "Enemies to use on", type = MENU})
 -- galeforce
 	self.Menu.targitems.itemgale:MenuElement({id = "itemgaleuse", name = "Use Galeforce", value = true})
 	self.Menu.targitems.itemgale:MenuElement({id = "itemgaleusehp", name = "If enemy lower then", value = 30, min = 5, max = 95, step = 5, identifier = "%"})
+    self.Menu.targitems.itemgale:MenuElement({id = "itemgalecombo", name = "Use only in Combo Mode", value = true})
 	self.Menu.targitems.itemgale:MenuElement({id = "enemiestohit", name = "Enemies to use on", type = MENU})
 -- auto level
     self.Menu.autolvl:MenuElement({id = "autolvluse", name = "Enable Auto Level Spells", value = true})
@@ -681,6 +719,8 @@ function Activator:Loop()
 
 		-- enemy loop
 		for i, enemy in pairs(EnemyHeroes) do
+        --campsmite
+        self:Monsters(enemy)
 		-- spike count
 			if ValidTarget(enemy, 350 + myHero.boundingRadius + enemy.boundingRadius) and self.Menu.targitems.itemironspk.enemiestohit[enemy.charName] and self.Menu.targitems.itemironspk.enemiestohit[enemy.charName]:Value() then
 				spikecount = spikecount + 1
@@ -967,6 +1007,50 @@ function Activator:Loop()
 		EnemiesOmen = omencount
 end
 
+function Activator:Monsters(enemy)
+    local monsters = _G.SDK.ObjectManager:GetMonsters(1000)
+    for i = 1, #monsters do
+        local monster = monsters[i]
+        if ValidTarget(monster, 550) and self.Menu.summs.summsmite.smitecamps.smitedrake:Value() and (monster.charName == "SRU_Dragon_Water" or monster.charName == "SRU_Dragon_Fire" or monster.charName == "SRU_Dragon_Earth" or monster.charName == "SRU_Dragon_Air" or monster.charName == "SRU_Dragon_Elder") then
+            local SmiteDamage = self:GetSmiteDamage()
+            if monster.health <= SmiteDamage then
+                self:SmiteCamp(monster)
+            end
+        end
+        if ValidTarget(monster, 550) and self.Menu.summs.summsmite.smitecamps.smiteherald:Value() and monster.charName == "SRU_RiftHerald" then
+            local SmiteDamage = self:GetSmiteDamage()
+            if monster.health <= SmiteDamage then
+                self:SmiteCamp(monster)
+            end
+        end
+        if ValidTarget(monster, 550) and self.Menu.summs.summsmite.smitecamps.smitebaron:Value() and monster.charName == "SRU_Baron" then
+            local SmiteDamage = self:GetSmiteDamage()
+            if monster.health <= SmiteDamage then
+                self:SmiteCamp(monster)
+            end
+        end
+        if ValidTarget(monster, 550) and self.Menu.summs.summsmite.smitecamps.smiteredblue:Value() and (monster.charName == "SRU_Blue" or monster.charName == "SRU_Red") and ValidTarget(enemy, 1000) then
+            local SmiteDamage = self:GetSmiteDamage()
+            if monster.health <= SmiteDamage then
+                self:SmiteCamp(monster)
+            end
+        end
+        if ValidTarget(monster, 550) and self.Menu.summs.summsmite.smitecamps.smitecrab:Value() and monster.charName == "Sru_Crab" and ValidTarget(enemy, 1000) then
+            local SmiteDamage = self:GetSmiteDamage()
+            if monster.health <= SmiteDamage then
+                self:SmiteCamp(monster)
+            end
+        end
+        if ValidTarget(monster, 550) and self.Menu.summs.summsmite.smitecamps.smitelow:Value() and myHero.health / myHero.maxHealth <= self.Menu.summs.summsmite.smitecamps.smitelowhp:Value() / 100 and ValidTarget(enemy, 1000) then
+            for i = 1, #Camps do
+                if monster.charName == Camps[i] then
+                    self:SmiteCamp(monster)
+                end
+            end
+        end
+    end
+end
+
 function Activator:Autolvl()
     local spellPoints = myHero.levelData.lvlPts 
     local Level = myHero.levelData.lvl
@@ -1174,7 +1258,7 @@ function Activator:Draw()
 end
 
 function Activator:ItemSpells()
-	FrostSpellData = {speed = 1200, range = 935, delay = 0.20, radius = 50, collision = {}, type = "linear"}
+	FrostSpellData = {speed = 1200, range = 835, delay = 0.20, radius = 50, collision = {}, type = "linear"}
 	BeltSpellData = {speed = 1600, range = 1000, delay = 0.31, angle = 45, radius = 50, collision = {"minion"}, type = "conic"}
 	BreakerSpellData = {speed = 1500, range = 500, delay = 0.21, radius = 50, collision = {}, type = "circular"}
 end
@@ -1233,6 +1317,24 @@ function Activator:UseRedSmite(unit)
 	elseif myHero:GetSpellData(SUMMONER_2).name == "S5_SummonerSmiteDuel" and IsReady(SUMMONER_2) and myHero:GetSpellData(SUMMONER_2).ammo > 1 then
 		Control.CastSpell(HK_SUMMONER_2, unit)
 	end
+end
+
+function Activator:SmiteCamp(unit)
+    if (myHero:GetSpellData(SUMMONER_1).name == "S5_SummonerSmitePlayerGanker" or myHero:GetSpellData(SUMMONER_1).name == "S5_SummonerSmiteDuel" or myHero:GetSpellData(SUMMONER_1).name == "SummonerSmite") and IsReady(SUMMONER_1) then
+        Control.CastSpell(HK_SUMMONER_1, unit)
+    elseif (myHero:GetSpellData(SUMMONER_2).name == "S5_SummonerSmitePlayerGanker" or myHero:GetSpellData(SUMMONER_2).name == "S5_SummonerSmiteDuel" or myHero:GetSpellData(SUMMONER_2).name == "SummonerSmite") and IsReady(SUMMONER_2) then
+        Control.CastSpell(HK_SUMMONER_2, unit)
+    end
+end
+
+function Activator:GetSmiteDamage()
+    if myHero:GetSpellData(SUMMONER_1).name == "SummonerSmite" or myHero:GetSpellData(SUMMONER_2).name == "SummonerSmite" then
+        return 450
+    elseif myHero:GetSpellData(SUMMONER_1).name == "S5_SummonerSmiteDuel" or myHero:GetSpellData(SUMMONER_2).name == "S5_SummonerSmiteDuel" then
+        return 900
+    elseif myHero:GetSpellData(SUMMONER_1).name == "S5_SummonerSmitePlayerGanker" or myHero:GetSpellData(SUMMONER_2).name == "S5_SummonerSmitePlayerGanker" then
+        return 900
+    end
 end
 
 -- items
@@ -1300,83 +1402,105 @@ function Activator:UseLocket()
 end
 
 function Activator:UseIronSpk()
-	local ItemIronSpk = GetItemSlot(myHero, 6029)
-	if ItemIronSpk > 0 and myHero:GetSpellData(ItemIronSpk).currentCd == 0 then
-		Control.CastSpell(ItemHotKey[ItemIronSpk])
-	end
+    if (self.Menu.targitems.itemironspk.itemironspkcombo:Value() and Mode() == "Combo") or not self.Menu.targitems.itemironspk.itemironspkcombo:Value() then
+    	local ItemIronSpk = GetItemSlot(myHero, 6029)
+    	if ItemIronSpk > 0 and myHero:GetSpellData(ItemIronSpk).currentCd == 0 then
+    		Control.CastSpell(ItemHotKey[ItemIronSpk])
+    	end
+    end
 end
 
 function Activator:UseGoreDrinker()
-	local ItemGoreDrinker = GetItemSlot(myHero, 6630)
-	if ItemGoreDrinker > 0 and myHero:GetSpellData(ItemGoreDrinker).currentCd == 0 then
-		Control.CastSpell(ItemHotKey[ItemGoreDrinker])
-	end
+    if (self.Menu.targitems.itemgoredrnk.itemgoredrnkcombo:Value() and Mode() == "Combo") or not self.Menu.targitems.itemgoredrnk.itemgoredrnkcombo:Value() then
+    	local ItemGoreDrinker = GetItemSlot(myHero, 6630)
+    	if ItemGoreDrinker > 0 and myHero:GetSpellData(ItemGoreDrinker).currentCd == 0 then
+    		Control.CastSpell(ItemHotKey[ItemGoreDrinker])
+    	end
+    end
 end
 
 function Activator:UseStrideBreaker(unit)
-	local ItemStrideBreaker = GetItemSlot(myHero, 6631)
-	local pred = _G.PremiumPrediction:GetPrediction(myHero, unit, BreakerSpellData)
-	if pred.CastPos and _G.PremiumPrediction.HitChance.Medium(pred.HitChance) and ItemStrideBreaker > 0 and myHero:GetSpellData(ItemStrideBreaker).currentCd == 0 then
-		Control.CastSpell(ItemHotKey[ItemStrideBreaker], pred.CastPos)
-	end
+    if (self.Menu.targitems.itemstidebreaker.itemstidebreakercombo:Value() and Mode() == "Combo") or not self.Menu.targitems.itemstidebreaker.itemstidebreakercombo:Value() then
+    	local ItemStrideBreaker = GetItemSlot(myHero, 6631)
+    	local pred = _G.PremiumPrediction:GetPrediction(myHero, unit, BreakerSpellData)
+    	if pred.CastPos and _G.PremiumPrediction.HitChance.Medium(pred.HitChance) and ItemStrideBreaker > 0 and myHero:GetSpellData(ItemStrideBreaker).currentCd == 0 then
+    		Control.CastSpell(ItemHotKey[ItemStrideBreaker], pred.CastPos)
+    	end
+    end
 end
 
 function Activator:UseShurelyas()
-	local ItemShurelyas = GetItemSlot(myHero, 2065)
-	if ItemShurelyas > 0 and myHero:GetSpellData(ItemShurelyas).currentCd == 0 then
-		Control.CastSpell(ItemHotKey[ItemShurelyas])
-	end
+    if (self.Menu.targitems.itemshure.itemshurecombo:Value() and Mode() == "Combo") or not self.Menu.targitems.itemshure.itemshurecombo:Value() then
+    	local ItemShurelyas = GetItemSlot(myHero, 2065)
+    	if ItemShurelyas > 0 and myHero:GetSpellData(ItemShurelyas).currentCd == 0 then
+    		Control.CastSpell(ItemHotKey[ItemShurelyas])
+    	end
+    end
 end
 
 function Activator:UseOmen()
-	local ItemOmen = GetItemSlot(myHero, 3143)
-	if ItemOmen > 0 and myHero:GetSpellData(ItemOmen).currentCd == 0 then
-		Control.CastSpell(ItemHotKey[ItemOmen])
-	end
+    if (self.Menu.targitems.itemranduin.itemranduincombo:Value() and Mode() == "Combo") or not self.Menu.targitems.itemranduin.itemranduincombo:Value() then
+    	local ItemOmen = GetItemSlot(myHero, 3143)
+    	if ItemOmen > 0 and myHero:GetSpellData(ItemOmen).currentCd == 0 then
+    		Control.CastSpell(ItemHotKey[ItemOmen])
+    	end
+    end
 end
 
 function Activator:UseChempunk()
-	local ItemChempunk = GetItemSlot(myHero, 6664)
-	if ItemChempunk > 0 and myHero:GetSpellData(ItemChempunk).currentCd == 0 then
-		Control.CastSpell(ItemHotKey[ItemChempunk])
-	end
+    if (self.Menu.targitems.itemchempunk.itemchempunkcombo:Value() and Mode() == "Combo") or not self.Menu.targitems.itemchempunk.itemchempunkcombo:Value() then
+    	local ItemChempunk = GetItemSlot(myHero, 6664)
+    	if ItemChempunk > 0 and myHero:GetSpellData(ItemChempunk).currentCd == 0 then
+    		Control.CastSpell(ItemHotKey[ItemChempunk])
+    	end
+    end
 end
 
 function Activator:UseYoumuus()
-	local ItemYoumuus = GetItemSlot(myHero, 3142)
-	if ItemYoumuus > 0 and myHero:GetSpellData(ItemYoumuus).currentCd == 0 then
-		Control.CastSpell(ItemHotKey[ItemYoumuus])
-	end
+    if (self.Menu.targitems.itemyoumuu.itemyoumuusecombo:Value() and Mode() == "Combo") or not self.Menu.targitems.itemyoumuu.itemyoumuusecombo:Value() then
+    	local ItemYoumuus = GetItemSlot(myHero, 3142)
+    	if ItemYoumuus > 0 and myHero:GetSpellData(ItemYoumuus).currentCd == 0 then
+    		Control.CastSpell(ItemHotKey[ItemYoumuus])
+    	end
+    end
 end
 
 function Activator:UseRocketBelt(unit)
-	local ItemRocketBelt = GetItemSlot(myHero, 3152)
-	local pred = _G.PremiumPrediction:GetPrediction(myHero, unit, BeltSpellData)
-	if pred.CastPos and _G.PremiumPrediction.HitChance.Medium(pred.HitChance) and ItemRocketBelt > 0 and myHero:GetSpellData(ItemRocketBelt).currentCd == 0 then
-		Control.CastSpell(ItemHotKey[ItemRocketBelt], pred.CastPos)
-	end
+    if (self.Menu.targitems.itemrocket.itemrocketcombo:Value() and Mode() == "Combo") or not self.Menu.targitems.itemrocket.itemrocketcombo:Value() then
+    	local ItemRocketBelt = GetItemSlot(myHero, 3152)
+    	local pred = _G.PremiumPrediction:GetPrediction(myHero, unit, BeltSpellData)
+    	if pred.CastPos and _G.PremiumPrediction.HitChance.Medium(pred.HitChance) and ItemRocketBelt > 0 and myHero:GetSpellData(ItemRocketBelt).currentCd == 0 then
+    		Control.CastSpell(ItemHotKey[ItemRocketBelt], pred.CastPos)
+    	end
+    end
 end
 
 function Activator:UseClaw(unit)
-	local ItemClaw = GetItemSlot(myHero, 6693)
-	if ItemClaw > 0 and myHero:GetSpellData(ItemClaw).currentCd == 0 then
-		Control.CastSpell(ItemHotKey[ItemClaw], unit)
-	end
+    if (self.Menu.targitems.itemprowler.itemprowlercombo:Value() and Mode() == "Combo") or not self.Menu.targitems.itemprowler.itemprowlercombo:Value() then
+    	local ItemClaw = GetItemSlot(myHero, 6693)
+    	if ItemClaw > 0 and myHero:GetSpellData(ItemClaw).currentCd == 0 then
+    		Control.CastSpell(ItemHotKey[ItemClaw], unit)
+    	end
+    end
 end
 
 function Activator:UseFrost(unit)
-	local ItemFrost = GetItemSlot(myHero, 6656)
-	local pred = _G.PremiumPrediction:GetPrediction(myHero, unit, FrostSpellData)
-	if pred.CastPos and ItemFrost > 0 and myHero:GetSpellData(ItemFrost).currentCd == 0 then
-		Control.CastSpell(ItemHotKey[ItemFrost], pred.CastPos)
-	end
+    if (self.Menu.targitems.itemevfrost.itemevfrostcombo:Value() and Mode() == "Combo") or not self.Menu.targitems.itemevfrost.itemevfrostcombo:Value() then
+    	local ItemFrost = GetItemSlot(myHero, 6656)
+    	local pred = _G.PremiumPrediction:GetPrediction(myHero, unit, FrostSpellData)
+    	if pred.CastPos and ItemFrost > 0 and myHero:GetSpellData(ItemFrost).currentCd == 0 then
+    		Control.CastSpell(ItemHotKey[ItemFrost], pred.CastPos)
+    	end
+    end
 end
 
 function Activator:UseGale(posy)
-	local ItemGale = GetItemSlot(myHero, 6671)
-	if ItemGale > 0 and myHero:GetSpellData(ItemGale).currentCd == 0 then
-		Control.CastSpell(ItemHotKey[ItemGale], posy)
-	end
+    if (self.Menu.targitems.itemgale.itemgalecombo:Value() and Mode() == "Combo") or not self.Menu.targitems.itemgale.itemgalecombo:Value() then
+    	local ItemGale = GetItemSlot(myHero, 6671)
+    	if ItemGale > 0 and myHero:GetSpellData(ItemGale).currentCd == 0 then
+    		Control.CastSpell(ItemHotKey[ItemGale], posy)
+    	end
+    end
 end
 
 
@@ -1454,3 +1578,4 @@ end
 function OnLoad()
     Activator()
 end
+
