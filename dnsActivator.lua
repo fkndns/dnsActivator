@@ -926,7 +926,7 @@ function Activator:Loop()
 					allycount = allycount + 1
 				end
 			-- ally heal
-				if self.Menu.summs.summheal.summhealmate:Value() and myHero.health / myHero.maxHealth <= self.Menu.summs.summheal.summhealmatehp:Value() / 100 and self.Menu.summs.summheal.alliestoheal[ally.charName] and self.Menu.summs.summheal.alliestoheal[ally.charName]:Value() and enemy.activeSpell.valid and not enemy.activeSpell.isStopped and ValidTarget(ally, 850 + myHero.boundingRadius + ally.boundingRadius) then
+				if self.Menu.summs.summheal.summhealmate:Value() and ally.health / ally.maxHealth <= self.Menu.summs.summheal.summhealmatehp:Value() / 100 and self.Menu.summs.summheal.alliestoheal[ally.charName] and self.Menu.summs.summheal.alliestoheal[ally.charName]:Value() and enemy.activeSpell.valid and not enemy.activeSpell.isStopped and ValidTarget(ally, 850 + myHero.boundingRadius + ally.boundingRadius) then
 					if enemy.activeSpell.target == ally.handle then
                         self:UseHeal(ally)
                     else
@@ -1334,8 +1334,8 @@ function Activator:GetSmiteDamage()
         return 900
     elseif myHero:GetSpellData(SUMMONER_1).name == "S5_SummonerSmitePlayerGanker" or myHero:GetSpellData(SUMMONER_2).name == "S5_SummonerSmitePlayerGanker" then
         return 900
-    else
-    return 0
+    else 
+        return 0
     end
 end
 
