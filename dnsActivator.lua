@@ -130,7 +130,7 @@ function IsImmobile(unit)
         local buff = unit:GetBuff(i)
         if buff and buff.count > 0 then
             local BuffType = buff.type
-            if BuffType == 5 or BuffType == 11 or BuffType == 21 or BuffType == 22 or BuffType == 24 or BuffType == 29 or buff.name == "recall" then
+            if BuffType == 5 or BuffType == 12 or BuffType == 22 or BuffType == 23 or BuffType == 25 or BuffType == 30 or BuffType == 35 or buff.name == "recall" then
                 local BuffDuration = buff.duration
                 if BuffDuration > MaxDuration then
                     MaxDuration = BuffDuration
@@ -147,7 +147,7 @@ function IsCleanse(unit)
         local buff = unit:GetBuff(i)
         if buff and buff.count > 0 then
             local BuffType = buff.type
-            if BuffType == 5 or BuffType == 8 or BuffType == 9 or BuffType == 11 or BuffType == 21 or BuffType == 22 or BuffType == 24 or BuffType == 31 then
+            if BuffType == 5 or BuffType == 8 or BuffType == 10 or BuffType == 12 or BuffType == 22 or BuffType == 23 or BuffType == 25 or BuffType == 32 or BuffType == 35 then
                 local BuffDuration = buff.duration
                 if BuffDuration > MaxDuration then
                     MaxDuration = BuffDuration
@@ -1008,6 +1008,7 @@ function Activator:Loop()
 end
 
 function Activator:Monsters(enemy)
+    if self:GetSmiteDamage() == 0 then return end
     local monsters = _G.SDK.ObjectManager:GetMonsters(1000)
     for i = 1, #monsters do
         local monster = monsters[i]
@@ -1052,6 +1053,7 @@ function Activator:Monsters(enemy)
 end
 
 function Activator:Autolvl()
+    if not self.Menu.autolvl.autolvluse:Value() then return end
     local spellPoints = myHero.levelData.lvlPts 
     local Level = myHero.levelData.lvl
 
@@ -1580,4 +1582,3 @@ end
 function OnLoad()
     Activator()
 end
-
